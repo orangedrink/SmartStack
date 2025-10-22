@@ -27,11 +27,11 @@ const mainNavItems: NavItem[] = [
         href: products(),
         icon: Package,
     },
-    {
-        title: 'Ticketing',
-        href: tickets(),
-        icon: LifeBuoy,
-    },
+    //{
+    //    title: 'Ticketing',
+    //    href: tickets(),
+    //    icon: LifeBuoy,
+    //},
 ];
 
 const footerNavItems: NavItem[] = [
