@@ -18,6 +18,16 @@ import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
     {
+        title: 'Home',
+        href: '/home',
+        icon: LayoutGrid,
+    },
+//    {
+//        title: 'Welcome',
+//        href: '/welcome',
+//        icon: LayoutGrid,
+//    },
+    {
         title: 'Dashboard',
         href: dashboard(),
         icon: LayoutGrid,

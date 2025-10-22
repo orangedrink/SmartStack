@@ -14,6 +14,12 @@ Route::get('/', function () {
     ]);
 })->name('home');
 
+Route::get('/welcome', function () {
+    return Inertia::render('welcome', [
+        'canRegister' => Features::enabled(Features::registration()),
+    ]);
+})->name('welcome');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     // Authenticated users gain access to the internal dashboard and support tooling.
     Route::get('dashboard', function () {
