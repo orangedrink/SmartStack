@@ -16,6 +16,8 @@ class ProfileUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
+        // Profile updates must maintain valid user metadata. Keeping these rules
+        // here centralizes validation for both web and API contexts.
         return [
             'name' => ['required', 'string', 'max:255'],
 
@@ -25,6 +27,8 @@ class ProfileUpdateRequest extends FormRequest
                 'lowercase',
                 'email',
                 'max:255',
+                // Ignore the currently authenticated user so they can keep their
+                // existing email address while still preventing duplicates.
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
         ];

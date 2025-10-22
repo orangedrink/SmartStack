@@ -9,6 +9,7 @@ test('two factor settings page can be rendered', function () {
         $this->markTestSkipped('Two-factor authentication is not enabled.');
     }
 
+    // Mirror the production Fortify settings so the view behaves consistently.
     Features::twoFactorAuthentication([
         'confirm' => true,
         'confirmPassword' => true,
@@ -16,6 +17,8 @@ test('two factor settings page can be rendered', function () {
 
     $user = User::factory()->withoutTwoFactor()->create();
 
+    // After confirming their password the user should see the settings page in
+    // a disabled state.
     $this->actingAs($user)
         ->withSession(['auth.password_confirmed_at' => time()])
         ->get(route('two-factor.show'))
@@ -37,6 +40,8 @@ test('two factor settings page requires password confirmation when enabled', fun
         'confirmPassword' => true,
     ]);
 
+    // Without a recently confirmed password the user should be sent to the
+    // confirmation route for additional verification.
     $response = $this->actingAs($user)
         ->get(route('two-factor.show'));
 
@@ -55,6 +60,7 @@ test('two factor settings page does not requires password confirmation when disa
         'confirmPassword' => false,
     ]);
 
+    // When confirmation is disabled the route should load immediately.
     $this->actingAs($user)
         ->get(route('two-factor.show'))
         ->assertOk()
@@ -72,6 +78,7 @@ test('two factor settings page returns forbidden response when two factor is dis
 
     $user = User::factory()->create();
 
+    // With the feature globally disabled the route should reject the request.
     $this->actingAs($user)
         ->withSession(['auth.password_confirmed_at' => time()])
         ->get(route('two-factor.show'))

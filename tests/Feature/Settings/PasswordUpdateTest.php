@@ -4,6 +4,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 
 test('password update page is displayed', function () {
+    // Ensure authenticated users can view the password settings screen.
     $user = User::factory()->create();
 
     $response = $this
@@ -14,6 +15,8 @@ test('password update page is displayed', function () {
 });
 
 test('password can be updated', function () {
+    // Submitting the correct current password with a matching confirmation
+    // should rotate the stored hash.
     $user = User::factory()->create();
 
     $response = $this
@@ -33,6 +36,8 @@ test('password can be updated', function () {
 });
 
 test('correct password must be provided to update password', function () {
+    // Using an incorrect current password should fail validation so the stored
+    // credentials remain untouched.
     $user = User::factory()->create();
 
     $response = $this

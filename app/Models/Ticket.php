@@ -14,12 +14,16 @@ class Ticket extends Model
 {
     use HasFactory;
 
+    // These status constants provide a centralized enumeration that the rest of the
+    // application can rely on when checking or mutating a ticket's lifecycle state.
     public const STATUS_OPEN = 'open';
     public const STATUS_IN_PROGRESS = 'in_progress';
     public const STATUS_WAITING = 'waiting_on_customer';
     public const STATUS_RESOLVED = 'resolved';
     public const STATUS_CLOSED = 'closed';
 
+    // Priority levels define the urgency of the request. Having explicit constants
+    // keeps database values consistent and avoids magic strings in business logic.
     public const PRIORITY_LOW = 'low';
     public const PRIORITY_NORMAL = 'normal';
     public const PRIORITY_HIGH = 'high';
@@ -63,6 +67,10 @@ class Ticket extends Model
     protected static function booted(): void
     {
         static::creating(function (Ticket $ticket): void {
+            // Ensure that new tickets always start in a predictable state if the
+            // caller omitted certain attributes. The defaults mirror common help
+            // desk behavior: new tickets are open, normal priority, and receive
+            // a generated reference/timestamp.
             if (blank($ticket->status)) {
                 $ticket->status = self::STATUS_OPEN;
             }
@@ -104,9 +112,14 @@ class Ticket extends Model
 
     public static function generateReference(): string
     {
+        // Use a date prefix so support agents can quickly identify when a ticket
+        // was created, while the random sequence prevents collisions in high-
+        // volume environments.
         $datePrefix = now()->format('Ymd');
 
         do {
+            // The padded random sequence keeps the reference uniform (e.g. 0001)
+            // which is more legible and sorts naturally when displayed.
             $sequence = str_pad((string) random_int(0, 9999), 4, '0', STR_PAD_LEFT);
             $reference = "TCK-{$datePrefix}-{$sequence}";
         } while (static::where('reference', $reference)->exists());
@@ -147,9 +160,14 @@ class Ticket extends Model
      */
     public function timeline(): Collection
     {
+        // Load the relationships needed to build the timeline only when missing
+        // to avoid unnecessary database queries if the associations were eager
+        // loaded earlier in the request lifecycle.
         $this->loadMissing(['comments.user', 'activities.performedBy']);
 
         $commentItems = $this->comments->map(function (TicketComment $comment) {
+            // Flatten each comment into a serializable structure that the front-end
+            // can consume without needing to understand Eloquent internals.
             return [
                 'id' => "comment-{$comment->id}",
                 'type' => 'comment',
@@ -167,6 +185,8 @@ class Ticket extends Model
         });
 
         $activityItems = $this->activities->map(function (TicketActivity $activity) {
+            // Activities are normalized similarly to comments so both datasets can
+            // be merged and sorted chronologically with minimal effort.
             return [
                 'id' => "activity-{$activity->id}",
                 'type' => $activity->type,
@@ -187,6 +207,8 @@ class Ticket extends Model
             ->sortBy('created_at')
             ->values()
             ->map(function (array $item) {
+                // Convert timestamps to ISO-8601 strings so the API payload is
+                // timezone-aware and consistent across JavaScript consumers.
                 $item['created_at'] = optional($item['created_at'])->toIso8601String();
 
                 return $item;
@@ -213,6 +235,8 @@ class Ticket extends Model
         $tags = $value;
 
         if (is_string($value)) {
+            // Accept comma separated strings, trimming whitespace and ignoring
+            // empty segments so UI inputs remain forgiving to user formatting.
             $tags = Str::of($value)
                 ->explode(',')
                 ->map(fn ($tag) => trim((string) $tag))
@@ -221,6 +245,9 @@ class Ticket extends Model
         }
 
         if (is_array($tags)) {
+            // Normalize arrays by lowercasing, de-duplicating, and replacing
+            // whitespace with dashes. This keeps stored tags clean regardless
+            // of how they were supplied.
             $tags = collect($tags)
                 ->map(fn ($tag) => trim((string) $tag))
                 ->filter()

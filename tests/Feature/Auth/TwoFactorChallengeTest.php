@@ -9,6 +9,7 @@ test('two factor challenge redirects to login when not authenticated', function 
         $this->markTestSkipped('Two-factor authentication is not enabled.');
     }
 
+    // Guests should not see the challenge screen; they need to log in first.
     $response = $this->get(route('two-factor.login'));
 
     $response->assertRedirect(route('login'));
@@ -19,6 +20,7 @@ test('two factor challenge can be rendered', function () {
         $this->markTestSkipped('Two-factor authentication is not enabled.');
     }
 
+    // Enable confirmations to replicate the production configuration.
     Features::twoFactorAuthentication([
         'confirm' => true,
         'confirmPassword' => true,
@@ -26,12 +28,14 @@ test('two factor challenge can be rendered', function () {
 
     $user = User::factory()->create();
 
+    // Seed the user with a confirmed two-factor secret and codes.
     $user->forceFill([
         'two_factor_secret' => encrypt('test-secret'),
         'two_factor_recovery_codes' => encrypt(json_encode(['code1', 'code2'])),
         'two_factor_confirmed_at' => now(),
     ])->save();
 
+    // Logging in should place the user into the two-factor challenge session.
     $this->post(route('login'), [
         'email' => $user->email,
         'password' => 'password',

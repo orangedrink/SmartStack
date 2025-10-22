@@ -16,9 +16,14 @@ class TicketSummaryResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        // Ensure the lightweight relations are available so the resource can
+        // expose consistent structures without requiring callers to eager load
+        // them manually every time.
         $this->resource->loadMissing(['assignee:id,name,email', 'requester:id,name,email']);
 
         return [
+            // Provide the high-level data points used on the ticket queue. The
+            // front-end expects ISO 8601 strings for dates to simplify parsing.
             'id' => $this->id,
             'reference' => $this->reference,
             'subject' => $this->subject,
@@ -32,6 +37,8 @@ class TicketSummaryResource extends JsonResource
             'comment_count' => $this->comments_count ?? 0,
             'requester' => $this->requester
                 ? [
+                    // Embed a minimal requester payload so avatars/names can be
+                    // rendered without additional HTTP requests.
                     'id' => $this->requester->id,
                     'name' => $this->requester->name,
                     'email' => $this->requester->email,
@@ -39,6 +46,8 @@ class TicketSummaryResource extends JsonResource
                 : null,
             'assignee' => $this->assignee
                 ? [
+                    // Similar metadata for the assigned agent, allowing the UI
+                    // to show escalation paths at a glance.
                     'id' => $this->assignee->id,
                     'name' => $this->assignee->name,
                     'email' => $this->assignee->email,

@@ -12,8 +12,11 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::create('tickets', function (Blueprint $table) {
+            // Reference acts as a human-friendly identifier exposed to agents.
             $table->id();
             $table->string('reference')->unique();
+            // Requester is required and cascades so deleting the user cleans up
+            // their historical tickets.
             $table->foreignIdFor(User::class, 'requester_id')->constrained()->cascadeOnDelete();
             $table->foreignIdFor(User::class, 'assignee_id')->nullable()->constrained()->nullOnDelete();
             $table->string('subject');
@@ -27,6 +30,7 @@ return new class extends Migration {
             $table->timestamp('first_response_at')->nullable();
             $table->unsignedInteger('first_response_minutes')->nullable();
             $table->unsignedInteger('reopen_count')->default(0);
+            // Tracks when the ticket last changed to power queue ordering.
             $table->timestamp('last_activity_at')->nullable();
             $table->timestamps();
         });

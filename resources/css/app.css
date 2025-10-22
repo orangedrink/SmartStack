@@ -1,5 +1,8 @@
+/* Load Tailwind's base, components, and utilities so the design system tokens */
+/* defined below can take advantage of the framework's theming features. */
 @import 'tailwindcss';
 
+/* Include animation utilities used by dashboard transitions. */
 @import "tw-animate-css";
 
 @source '../views';
@@ -8,6 +11,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
+    /* Map Tailwind design tokens to CSS custom properties so components can */
+    /* reference consistent colors, radii, and typography throughout the app. */
     --font-sans:
         'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
@@ -62,6 +67,8 @@
 }
 
 :root {
+    /* Default (light) theme definitions using OKLCH color space for perceptual */
+    /* uniformity. These values power Tailwind's semantic color palette. */
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
@@ -98,6 +105,8 @@
 }
 
 .dark {
+    /* Override the light palette when the `.dark` class is present on the */
+    /* <html> element, providing a high-contrast dark mode experience. */
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.145 0 0);
@@ -138,11 +147,14 @@
     }
 
     body {
+        /* Apply the theme's background/foreground colors globally so every */
+        /* screen inherits the correct contrast without bespoke styles. */
         @apply bg-background text-foreground;
     }
 }
 
 .app-shell-theme {
+    /* Additional theme variant used for the standalone marketing shell. */
     color-scheme: dark;
     --background: oklch(0.2 0.03 250);
     --foreground: oklch(0.95 0.03 230);

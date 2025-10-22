@@ -12,6 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
+            // Core user identity fields with optional email verification stamp.
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
@@ -22,12 +23,16 @@ return new class extends Migration
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
+            // Store hashed reset tokens per email, replacing the deprecated
+            // password_resets table from earlier Laravel versions.
             $table->string('email')->primary();
             $table->string('token');
             $table->timestamp('created_at')->nullable();
         });
 
         Schema::create('sessions', function (Blueprint $table) {
+            // Session table powers the database session driver which records
+            // metadata for concurrent session management and logout features.
             $table->string('id')->primary();
             $table->foreignId('user_id')->nullable()->index();
             $table->string('ip_address', 45)->nullable();

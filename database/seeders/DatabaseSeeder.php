@@ -13,6 +13,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Pre-seed a deterministic test user so local environments and demo
+        // deployments have credentials available out of the box.
         // User::factory(10)->create();
 
         User::firstOrCreate(

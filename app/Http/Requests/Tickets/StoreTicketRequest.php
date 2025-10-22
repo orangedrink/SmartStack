@@ -10,11 +10,15 @@ class StoreTicketRequest extends FormRequest
 {
     public function authorize(): bool
     {
+        // Only authenticated users can create tickets through this request; this
+        // guards the endpoint against anonymous submissions.
         return $this->user() !== null;
     }
 
     public function rules(): array
     {
+        // Validation keeps inbound API payloads clean. Limits prevent runaway
+        // input sizes from causing performance issues or skewing analytics.
         return [
             'subject' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
@@ -30,6 +34,8 @@ class StoreTicketRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        // Normalizing inputs ahead of validation simplifies rule definitions by
+        // ensuring nullable values are consistently represented as null/arrays.
         $this->merge([
             'assignee_id' => $this->filled('assignee_id') ? $this->input('assignee_id') : null,
             'tags' => $this->prepareTags($this->input('tags')),
@@ -46,6 +52,7 @@ class StoreTicketRequest extends FormRequest
         }
 
         if (is_string($tags)) {
+            // Accept comma separated strings to support simple text inputs.
             $tags = collect(explode(',', $tags));
         }
 
@@ -54,6 +61,8 @@ class StoreTicketRequest extends FormRequest
         }
 
         return $tags
+            // Trim whitespace, drop empty values, and reset the indices so the
+            // resulting array is ready for JSON storage without extra cleanup.
             ->map(fn ($tag) => trim((string) $tag))
             ->filter()
             ->values()
