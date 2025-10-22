@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
 
-Route::get('/', function () {
+Route::get('/home', function () {
     return Inertia::render('home', [
         'canRegister' => Features::enabled(Features::registration()),
     ]);
