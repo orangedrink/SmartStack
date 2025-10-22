@@ -13,6 +13,9 @@ trait PasswordValidationRules
      */
     protected function passwordRules(): array
     {
+        // The default Fortify password rule applies sensible security defaults
+        // (length, mixed case, symbols). The "confirmed" rule requires a
+        // matching *_confirmation field from the form submission.
         return ['required', 'string', Password::default(), 'confirmed'];
     }
 }

@@ -22,6 +22,8 @@ class UserFactory extends Factory
      */
     public function definition(): array
     {
+        // Provide sensible defaults so generated users are immediately usable in
+        // tests (verified email, configured two-factor, known password).
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
@@ -39,6 +41,8 @@ class UserFactory extends Factory
      */
     public function unverified(): static
     {
+        // Toggle the verification timestamp to null so scenarios can test flows
+        // that depend on unverified accounts.
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
         ]);
@@ -49,6 +53,8 @@ class UserFactory extends Factory
      */
     public function withoutTwoFactor(): static
     {
+        // Remove two-factor details to simulate accounts that never opted into
+        // multi-factor authentication.
         return $this->state(fn (array $attributes) => [
             'two_factor_secret' => null,
             'two_factor_recovery_codes' => null,

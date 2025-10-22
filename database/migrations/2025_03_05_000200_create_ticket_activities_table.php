@@ -15,11 +15,15 @@ return new class extends Migration {
         Schema::create('ticket_activities', function (Blueprint $table) {
             $table->id();
             $table->foreignIdFor(Ticket::class)->constrained()->cascadeOnDelete();
+            // Actor may be null for system-generated events; nullOnDelete keeps
+            // history intact even if the user account is removed.
             $table->foreignIdFor(User::class, 'performed_by')->nullable()->constrained('users')->nullOnDelete();
             $table->string('type', 100);
             $table->json('details')->nullable();
             $table->timestamps();
 
+            // Composite index accelerates timeline queries; type index supports
+            // filtering specific activity categories.
             $table->index(['ticket_id', 'created_at']);
             $table->index('type');
         });

@@ -16,6 +16,8 @@ class HandleAppearance
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // Share the appearance preference (light/dark/system) with every view so
+        // Blade templates and Inertia layouts can render consistent themes.
         View::share('appearance', $request->cookie('appearance') ?? 'system');
 
         return $next($request);

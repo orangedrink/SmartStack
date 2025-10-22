@@ -21,6 +21,8 @@ class TicketController extends Controller
 {
     public function index(Request $request): Response
     {
+        // Collect the incoming filter parameters so they can be re-used both for
+        // querying and for re-populating the UI controls on the Inertia page.
         $filters = [
             'status' => $request->query('status'),
             'priority' => $request->query('priority'),
@@ -34,6 +36,8 @@ class TicketController extends Controller
             static fn ($value) => !is_null($value) && $value !== ''
         );
 
+        // Base ticket query eager loads the minimal relationships required for
+        // the list view and precomputes comment counts to avoid N+1 queries.
         $ticketsQuery = Ticket::query()
             ->with(['assignee:id,name,email', 'requester:id,name,email'])
             ->withCount('comments');
@@ -48,6 +52,8 @@ class TicketController extends Controller
 
         if (isset($filters['assignee'])) {
             if ($filters['assignee'] === 'unassigned') {
+                // The special "unassigned" keyword helps the front-end expose a
+                // single toggle without knowing the underlying query semantics.
                 $ticketsQuery->whereNull('assignee_id');
             } else {
                 $ticketsQuery->where('assignee_id', $filters['assignee']);
@@ -57,6 +63,8 @@ class TicketController extends Controller
         if (isset($filters['search'])) {
             $searchTerm = $filters['search'];
             $ticketsQuery->where(function ($query) use ($searchTerm) {
+                // A loose LIKE search across multiple columns provides a simple
+                // global search experience for agents without needing full text.
                 $query
                     ->where('subject', 'like', "%{$searchTerm}%")
                     ->orWhere('description', 'like', "%{$searchTerm}%")
@@ -65,9 +73,13 @@ class TicketController extends Controller
         }
 
         if (isset($filters['tag'])) {
+            // Tags are stored as JSON arrays, so we use the JSON contains helper
+            // to find tickets that include the requested keyword.
             $ticketsQuery->whereJsonContains('tags', $filters['tag']);
         }
 
+        // Most recent activity surfaces the freshest tickets first, which is the
+        // default queue ordering for support teams.
         $ticketsQuery->orderByDesc('last_activity_at')->orderByDesc('updated_at');
 
         $paginator = $ticketsQuery->paginate(10)->withQueryString();
@@ -77,6 +89,8 @@ class TicketController extends Controller
         $selectedTicketId = $request->integer('ticket');
 
         if (!$selectedTicketId && $paginator->count() > 0) {
+            // When no explicit ticket is selected, fall back to the first result
+            // so the detail panel in the UI is never empty for populated queues.
             $selectedTicketId = optional($paginator->first())->id;
         }
 
@@ -94,6 +108,8 @@ class TicketController extends Controller
             Ticket::STATUS_WAITING,
         ];
 
+        // Dashboard style metrics power the quick stats in the sidebar. Each
+        // query is intentionally simple so the page stays performant.
         $openCount = Ticket::where('status', Ticket::STATUS_OPEN)->count();
         $inProgressCount = Ticket::where('status', Ticket::STATUS_IN_PROGRESS)->count();
         $waitingCount = Ticket::where('status', Ticket::STATUS_WAITING)->count();
@@ -170,6 +186,8 @@ class TicketController extends Controller
         /** @var \App\Models\User $user */
         $user = $request->user();
 
+        // Wrapping creation in a transaction ensures the ticket and the initial
+        // activity log entry are either both persisted or both rolled back.
         $ticket = DB::transaction(function () use ($data, $user) {
             $ticket = new Ticket();
             $ticket->fill(Arr::except($data, ['tags']));
@@ -204,11 +222,16 @@ class TicketController extends Controller
         /** @var \App\Models\User $user */
         $user = $request->user();
 
+        // Updating a ticket can trigger cascading side effects (reopen counts,
+        // activity logs). A transaction keeps the record in sync if something
+        // fails midway through the process.
         DB::transaction(function () use ($ticket, $data, $user) {
             $originalStatus = $ticket->status;
             $resolvedStatuses = [Ticket::STATUS_RESOLVED, Ticket::STATUS_CLOSED];
 
             if (array_key_exists('status', $data) && in_array($data['status'], $resolvedStatuses, true)) {
+                // When transitioning into a resolved/closed state, stamp the time
+                // the first resolution occurred so metrics can track resolution SLA.
                 $ticket->resolved_at = $ticket->resolved_at ?? now();
             }
 
@@ -217,16 +240,22 @@ class TicketController extends Controller
                 && in_array($originalStatus, $resolvedStatuses, true)
                 && !in_array($data['status'], $resolvedStatuses, true)
             ) {
+                // Moving from a resolved state back to an active one removes the
+                // resolved timestamp, ensuring future reports reflect the reopen.
                 $ticket->resolved_at = null;
             }
 
             $ticket->fill(Arr::except($data, ['tags']));
 
             if (array_key_exists('tags', $data)) {
+                // Tag updates bypass fill() because we need to run the attribute
+                // mutator which normalizes the values.
                 $ticket->tags = $data['tags'];
             }
 
             if ($ticket->isDirty()) {
+                // Any modification should bump the last activity timestamp so
+                // the index ordering reflects recent changes.
                 $ticket->last_activity_at = now();
             }
 
@@ -237,12 +266,16 @@ class TicketController extends Controller
                 && in_array($originalStatus, $resolvedStatuses, true)
                 && !in_array($ticket->status, $resolvedStatuses, true)
             ) {
+                // If a previously resolved ticket re-enters an active state, we
+                // increment the reopen counter for reporting/analytics.
                 $ticket->increment('reopen_count');
             }
 
             $activities = [];
 
             if ($ticket->wasChanged('status')) {
+                // Capture the "from" and "to" values so agents can understand
+                // what changed when scanning the activity timeline.
                 $activities[] = [
                     'type' => 'status_changed',
                     'details' => [
@@ -262,6 +295,8 @@ class TicketController extends Controller
             }
 
             if ($ticket->wasChanged('assignee_id')) {
+                // Include the new assignee metadata; the optional helper defends
+                // against null assignee IDs (unassigned tickets).
                 $activities[] = [
                     'type' => 'assignee_changed',
                     'details' => [
@@ -281,6 +316,8 @@ class TicketController extends Controller
             }
 
             if ($ticket->wasChanged('tags')) {
+                // Tags are stored as JSON; logging the full array provides a
+                // snapshot that can be diffed in the UI if desired.
                 $activities[] = [
                     'type' => 'tags_updated',
                     'details' => [
@@ -290,6 +327,8 @@ class TicketController extends Controller
             }
 
             if ($ticket->wasChanged('category')) {
+                // Category updates typically correspond to routing changes, so
+                // exposing the new category aids in historical auditing.
                 $activities[] = [
                     'type' => 'category_updated',
                     'details' => [
@@ -299,6 +338,8 @@ class TicketController extends Controller
             }
 
             foreach ($activities as $activity) {
+                // Persist each activity so the timeline stays granular; each
+                // change maps to a dedicated entry instead of a combined blob.
                 TicketActivity::create([
                     'ticket_id' => $ticket->id,
                     'performed_by' => $user->id,

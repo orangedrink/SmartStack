@@ -43,5 +43,6 @@ expect()->extend('toBeOne', function () {
 
 function something()
 {
-    // ..
+    // Placeholder helper demonstrating where project-specific functions could
+    // live. Replace or remove once real shared testing utilities are defined.
 }

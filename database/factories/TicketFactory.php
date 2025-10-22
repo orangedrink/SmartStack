@@ -16,6 +16,7 @@ class TicketFactory extends Factory
 
     public function definition(): array
     {
+        // Randomize status/priority to generate realistic queues in tests.
         $status = Arr::random(Ticket::statuses());
         $priority = Arr::random(Ticket::priorities());
 
@@ -24,11 +25,14 @@ class TicketFactory extends Factory
             ? fake()->dateTimeBetween($createdAt, '+3 weeks')
             : null;
 
+        // Only resolved/closed tickets receive a resolved timestamp.
         $resolvedAt = in_array($status, [Ticket::STATUS_RESOLVED, Ticket::STATUS_CLOSED], true)
             ? fake()->dateTimeBetween($createdAt, 'now')
             : null;
 
         return [
+            // Factories automatically create related users to keep associations
+            // consistent and valid.
             'requester_id' => User::factory(),
             'assignee_id' => fake()->boolean(70) ? User::factory() : null,
             'subject' => fake()->sentence(),
@@ -49,6 +53,7 @@ class TicketFactory extends Factory
             'first_response_at' => null,
             'first_response_minutes' => null,
             'reopen_count' => 0,
+            // Seed the timestamps so chronology-dependent queries behave predictably.
             'last_activity_at' => $createdAt,
             'created_at' => $createdAt,
             'updated_at' => $createdAt,

@@ -14,7 +14,9 @@ return new class extends Migration {
     {
         Schema::create('ticket_comments', function (Blueprint $table) {
             $table->id();
+            // Comments are deleted with their ticket to avoid orphaned history.
             $table->foreignIdFor(Ticket::class)->constrained()->cascadeOnDelete();
+            // Removing a user should also remove authored comments for privacy.
             $table->foreignIdFor(User::class)->constrained()->cascadeOnDelete();
             $table->text('body');
             $table->boolean('is_internal')->default(false);

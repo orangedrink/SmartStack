@@ -20,7 +20,9 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // The service provider remains available for binding additional Fortify
+        // dependencies (custom responses, pipeline overrides) should the auth
+        // flow expand in the future.
     }
 
     /**
@@ -38,6 +40,8 @@ class FortifyServiceProvider extends ServiceProvider
      */
     private function configureActions(): void
     {
+        // Tell Fortify which classes should handle core lifecycle events. Using
+        // dedicated action classes keeps registration/reset logic isolated.
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
         Fortify::createUsersUsing(CreateNewUser::class);
     }
@@ -47,6 +51,8 @@ class FortifyServiceProvider extends ServiceProvider
      */
     private function configureViews(): void
     {
+        // Map Fortify's internal routes to Inertia pages so we can leverage the
+        // same React/Vue SPA shell as the rest of the application.
         Fortify::loginView(fn (Request $request) => Inertia::render('auth/login', [
             'canResetPassword' => Features::enabled(Features::resetPasswords()),
             'canRegister' => Features::enabled(Features::registration()),
@@ -78,11 +84,15 @@ class FortifyServiceProvider extends ServiceProvider
      */
     private function configureRateLimiting(): void
     {
+        // Protect two-factor endpoints from brute force attempts by throttling
+        // attempts per session identifier.
         RateLimiter::for('two-factor', function (Request $request) {
             return Limit::perMinute(5)->by($request->session()->get('login.id'));
         });
 
         RateLimiter::for('login', function (Request $request) {
+            // Combine the username and IP address to generate a unique throttle
+            // key, discouraging credential stuffing from a single source.
             $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());
 
             return Limit::perMinute(5)->by($throttleKey);

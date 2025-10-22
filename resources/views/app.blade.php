@@ -30,6 +30,7 @@
             }
         </style>
 
+        {{-- Inertia will replace this title element client-side while preserving the fallback for no-JS environments --}}
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
         <link rel="icon" href="/favicon.ico" sizes="any">
@@ -39,6 +40,7 @@
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
 
+        {{-- Include Vite's dev client for HMR in local environments and compile the root page + entrypoint bundle --}}
         @viteReactRefresh
         @vite(['resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
         @inertiaHead

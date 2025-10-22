@@ -16,6 +16,8 @@ class TicketDetailResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        // Load the relationships needed to populate the detailed view without
+        // forcing controllers to manually manage eager loading.
         $this->resource->loadMissing(['assignee:id,name,email', 'requester:id,name,email', 'comments.user:id,name,email']);
 
         $participants = $this->comments
@@ -24,6 +26,8 @@ class TicketDetailResource extends JsonResource
             ->filter()
             ->unique('id')
             ->map(fn ($user) => [
+                // Participants capture everyone involved in the ticket so the UI
+                // can show mention/autocomplete lists when drafting responses.
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
@@ -31,6 +35,9 @@ class TicketDetailResource extends JsonResource
             ->values();
 
         return [
+            // The detail resource exposes the full spectrum of fields available
+            // on a ticket so the front-end can render timelines and metadata in
+            // a single Inertia payload.
             'id' => $this->id,
             'reference' => $this->reference,
             'subject' => $this->subject,
@@ -63,6 +70,7 @@ class TicketDetailResource extends JsonResource
             'updated_at' => optional($this->updated_at)->toIso8601String(),
             'last_activity_at' => optional($this->last_activity_at)->toIso8601String(),
             'timeline' => $this->timeline(),
+            // Deduplicated list of everyone who has interacted with the ticket.
             'participants' => $participants,
         ];
     }

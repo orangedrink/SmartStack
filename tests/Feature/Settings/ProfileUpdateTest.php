@@ -3,6 +3,7 @@
 use App\Models\User;
 
 test('profile page is displayed', function () {
+    // Authenticated users should be able to access the profile editing page.
     $user = User::factory()->create();
 
     $response = $this
@@ -13,6 +14,8 @@ test('profile page is displayed', function () {
 });
 
 test('profile information can be updated', function () {
+    // A valid payload should update both the name and email while clearing the
+    // verification timestamp to trigger re-verification.
     $user = User::factory()->create();
 
     $response = $this
@@ -34,6 +37,8 @@ test('profile information can be updated', function () {
 });
 
 test('email verification status is unchanged when the email address is unchanged', function () {
+    // Updating the profile without changing the email should keep the existing
+    // verification timestamp intact.
     $user = User::factory()->create();
 
     $response = $this
@@ -51,6 +56,8 @@ test('email verification status is unchanged when the email address is unchanged
 });
 
 test('user can delete their account', function () {
+    // Deleting the account with the correct password should remove the user and
+    // invalidate their session.
     $user = User::factory()->create();
 
     $response = $this
@@ -68,6 +75,8 @@ test('user can delete their account', function () {
 });
 
 test('correct password must be provided to delete account', function () {
+    // Supplying the wrong password should block account deletion and return a
+    // validation error so the user stays authenticated.
     $user = User::factory()->create();
 
     $response = $this

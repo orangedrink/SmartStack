@@ -13,6 +13,10 @@ class User extends Authenticatable
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, TwoFactorAuthenticatable;
 
+    // User accounts represent both customers and agents within the help desk.
+    // Keeping the fillable fields narrow protects against mass-assignment of
+    // privileged attributes (such as admin flags) from user supplied payloads.
+
     /**
      * The attributes that are mass assignable.
      *
@@ -30,6 +34,8 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $hidden = [
+        // Sensitive authentication details stay hidden when the model is
+        // serialized to arrays/JSON to prevent leaking credentials via APIs.
         'password',
         'two_factor_secret',
         'two_factor_recovery_codes',
@@ -44,6 +50,8 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
+            // Casting ensures the framework automatically handles date parsing
+            // and password hashing, making model usage safer and more ergonomic.
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',

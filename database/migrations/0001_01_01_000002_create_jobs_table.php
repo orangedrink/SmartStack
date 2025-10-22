@@ -12,6 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('jobs', function (Blueprint $table) {
+            // Core queue table storing serialized job payloads and metadata.
             $table->id();
             $table->string('queue')->index();
             $table->longText('payload');
@@ -22,6 +23,7 @@ return new class extends Migration
         });
 
         Schema::create('job_batches', function (Blueprint $table) {
+            // Track batch jobs for Laravel's Bus batching features.
             $table->string('id')->primary();
             $table->string('name');
             $table->integer('total_jobs');
@@ -35,6 +37,7 @@ return new class extends Migration
         });
 
         Schema::create('failed_jobs', function (Blueprint $table) {
+            // Failed jobs table allows for retries and debugging of exceptions.
             $table->id();
             $table->string('uuid')->unique();
             $table->text('connection');

@@ -15,6 +15,9 @@ class TwoFactorAuthenticationRequest extends FormRequest
      */
     public function authorize(): bool
     {
+        // Only allow the request when Fortify's two-factor feature is enabled.
+        // This mirrors Laravel's internal feature gating and prevents access to
+        // routes that would otherwise surface disabled functionality.
         return Features::enabled(Features::twoFactorAuthentication());
     }
 
@@ -25,6 +28,9 @@ class TwoFactorAuthenticationRequest extends FormRequest
      */
     public function rules(): array
     {
+        // No additional validation is required because this request simply
+        // exists to toggle the feature on/off. The trait consumes the request
+        // and handles side effects internally.
         return [];
     }
 }

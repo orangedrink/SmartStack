@@ -18,6 +18,8 @@ class TicketCommentController extends Controller
         /** @var \App\Models\User $user */
         $user = $request->user();
 
+        // Persisting the comment and its derived metrics together ensures the
+        // ticket's activity timestamps remain in sync with the conversation.
         DB::transaction(function () use ($ticket, $user, $data) {
             $comment = $ticket->comments()->create([
                 'user_id' => $user->id,
@@ -26,12 +28,16 @@ class TicketCommentController extends Controller
             ]);
 
             if (is_null($ticket->first_response_at) && $ticket->requester_id !== $user->id) {
+                // The first response metric is only tracked when someone other
+                // than the requester replies, providing SLA insights for agents.
                 $ticket->first_response_at = now();
                 $ticket->first_response_minutes = $ticket->created_at
                     ? (int) round($ticket->created_at->diffInMinutes(now()))
                     : 0;
             }
 
+            // Any new comment signifies activity, so we refresh the timestamp to
+            // keep queue ordering and SLA calculations accurate.
             $ticket->last_activity_at = now();
             $ticket->save();
 
@@ -40,6 +46,8 @@ class TicketCommentController extends Controller
                 'performed_by' => $user->id,
                 'type' => $data['is_internal'] ? 'internal_note_added' : 'comment_added',
                 'details' => [
+                    // Store a trimmed preview to render in dashboards without
+                    // exposing full comment bodies, which could be lengthy.
                     'body_preview' => Str::limit($comment->body, 160),
                     'is_internal' => (bool) ($data['is_internal'] ?? false),
                 ],
